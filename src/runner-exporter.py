@@ -1,5 +1,6 @@
 import requests
 import os
+import logging
 
 from prometheus_client import start_http_server, Counter, Gauge
 from time import sleep
@@ -11,6 +12,7 @@ OWNER = os.environ["OWNER"]
 
 # Start prometheus metrics
 start_http_server(8000)
+logging.info("Exporter Server started on Port 8000")
 
 metric_runner_api_ratelimit = Gauge(
     "github_runner_api_remain_rate_limit", "Github Api remaining rate limit", ["org"]
@@ -188,12 +190,17 @@ def main():
         headers = {"Authorization": f"token {PRIVATE_GITHUB_TOKEN}"}
         url = f"https://api.github.com/orgs/{OWNER}/actions/runners"
         result = requests.get(url, headers=headers)
+
+        logging.info("Requesting URL: "+ url)
+
         if result.headers:
             value = result.headers.get("X-RateLimit-Remaining")
             metric_runner_api_ratelimit.labels(OWNER).set(int(value))
+            logging.info("X-RateLimit-Remaining: "+ value)
         if result.ok:
             runner_list = result.json()
             runner_exports.export_metrics(runner_list["runners"])
+            logging.info("Runners found: "+ len(runner_list))
 
         sleep(REFRESH_INTERVAL)
 
