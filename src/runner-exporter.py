@@ -10,6 +10,9 @@ REFRESH_INTERVAL = os.environ.get("REFRESH_INTERVAL", 20)
 PRIVATE_GITHUB_TOKEN = os.environ["PRIVATE_GITHUB_TOKEN"]
 OWNER = os.environ["OWNER"]
 
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
+logging.basicConfig(level=LOGLEVEL)
+
 # Start prometheus metrics
 start_http_server(8000)
 logging.warning("Exporter Server started on Port 8000")
