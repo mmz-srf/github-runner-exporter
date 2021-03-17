@@ -200,7 +200,7 @@ def main():
         if result.ok:
             runner_list = result.json()
             runner_exports.export_metrics(runner_list["runners"])
-            logging.info("Runners found: "+ len(runner_list))
+            logging.info("Runners found: "+ str(len(runner_list)))
 
         sleep(REFRESH_INTERVAL)
 
