@@ -2,7 +2,7 @@ import requests
 import os
 import logging
 
-from prometheus_client import start_http_server, Counter, Gauge
+from prometheus_client import start_wsgi_server, Counter, Gauge
 from time import sleep
 
 # Read environment variables
@@ -14,7 +14,7 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 logging.basicConfig(level=LOGLEVEL)
 
 # Start prometheus metrics
-start_http_server(8000)
+start_wsgi_server(8000)
 logging.warning("Exporter Server started on Port 8000")
 
 metric_runner_api_ratelimit = Gauge(
