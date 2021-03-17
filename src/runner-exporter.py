@@ -1,5 +1,5 @@
 import requests
-import os
+import os, sys
 import logging
 
 from prometheus_client import start_wsgi_server, Counter, Gauge
@@ -12,10 +12,11 @@ OWNER = os.environ["OWNER"]
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 logging.basicConfig(level=LOGLEVEL)
+logging.StreamHandler(stream=sys.stdout)
 
 # Start prometheus metrics
 start_wsgi_server(8000)
-logging.warning("Exporter Server started on Port 8000")
+logging.info("Exporter Server started on Port 8000")
 
 metric_runner_api_ratelimit = Gauge(
     "github_runner_api_remain_rate_limit", "Github Api remaining rate limit", ["org"]
@@ -194,7 +195,7 @@ def main():
         url = f"https://api.github.com/orgs/{OWNER}/actions/runners"
         result = requests.get(url, headers=headers)
 
-        logging.warning("Requesting URL: "+ url)
+        logging.info("Requesting URL: "+ url)
 
         if result.headers:
             value = result.headers.get("X-RateLimit-Remaining")
@@ -203,7 +204,7 @@ def main():
         if result.ok:
             runner_list = result.json()
             runner_exports.export_metrics(runner_list["runners"])
-            logging.warning("Runners found: "+ str(len(runner_list)))
+            logging.info("Runners found: "+ str(len(runner_list)))
 
         sleep(REFRESH_INTERVAL)
 
