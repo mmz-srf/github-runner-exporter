@@ -1,11 +1,12 @@
 version: "3.9"
 services:
-  ithub-runner-exporter:
+  github-runner-exporter:
+    container_name: github-runner-exporter
     build: .
     image: "github-runner-exporter:latest"
     ports:
       - "8000:8000"
     environment:
-      OWNER: "mmz-srf"
-      LOGLEVEL: "DEBUG"
-      PRIVATE_GITHUB_TOKEN: "4ae37644a1e3a5bcfce47a8a4118485b09432f1a"
+      OWNER: ${OWNER}
+      LOGLEVEL: "${LOGLEVEL:-DEBUG}"
+      PRIVATE_GITHUB_TOKEN: "${PRIVATE_GITHUB_TOKEN}"

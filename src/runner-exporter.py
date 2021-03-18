@@ -16,7 +16,7 @@ logging.StreamHandler(stream=sys.stdout)
 
 # Start prometheus metrics
 start_wsgi_server(8000)
-logging.info("Exporter Server started on Port 8000")
+logging.warning("Exporter Server started on Port 8000")
 
 metric_runner_api_ratelimit = Gauge(
     "github_runner_api_remain_rate_limit", "Github Api remaining rate limit", ["org"]
@@ -200,7 +200,7 @@ def main():
         if result.headers:
             value = result.headers.get("X-RateLimit-Remaining")
             metric_runner_api_ratelimit.labels(OWNER).set(int(value))
-            logging.warning("X-RateLimit-Remaining: "+ value)
+            logging.info("X-RateLimit-Remaining: "+ value)
         if result.ok:
             runner_list = result.json()
             runner_exports.export_metrics(runner_list["runners"])
