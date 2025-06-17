@@ -1,2 +1,6 @@
-prometheus_client>=0.7.1
+prometheus_client>=0.22.1
 requests>=2.24.0
+
+# Required for Github authentication
+PyJWT
+cryptography

@@ -1,16 +1,22 @@
 import requests
 import os, sys
 import logging
+import jwt
+import time
+import urllib.request
+import json
 
 from prometheus_client import start_wsgi_server, Counter, Gauge
 from time import sleep
 
 # Read environment variables
 REFRESH_INTERVAL = int(os.environ.get("REFRESH_INTERVAL", 20))
-PRIVATE_GITHUB_TOKEN = os.environ["PRIVATE_GITHUB_TOKEN"]
 OWNER = os.environ["OWNER"]
-
+GITHUB_APP_PRIVATE_KEY = os.environ["GITHUB_APP_PRIVATE_KEY"]
+GITHUB_APP_ID = os.environ["GITHUB_APP_ID"]
+GITHUB_APP_SECRET = os.environ["GITHUB_APP_SECRET"]
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
+
 logging.basicConfig(level=LOGLEVEL)
 logging.StreamHandler(stream=sys.stdout)
 
@@ -21,6 +27,34 @@ logging.warning("Exporter Server started on Port 8000")
 metric_runner_api_ratelimit = Gauge(
     "github_runner_api_remain_rate_limit", "Github Api remaining rate limit", ["org"]
 )
+
+
+def generate_JWT_token() -> str:
+    payload = {
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 600,
+        'iss': GITHUB_APP_SECRET
+    }
+
+    encoded_jwt = jwt.encode(payload, GITHUB_APP_PRIVATE_KEY, algorithm='RS256')
+
+    return encoded_jwt
+
+
+def generate_installation_token() -> str:
+    jwt_token = generate_JWT_token()
+    headers = {
+        'Authorization': "Bearer " + jwt_token,
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    try:
+        req = urllib.request.Request(f"https://api.github.com/app/installations/{GITHUB_APP_ID}/access_tokens", headers=headers, method="POST")
+        installation_token = json.loads(urllib.request.urlopen(req).read())['token']
+    except Exception as e:
+        print(e)
+
+    return installation_token
 
 
 class runnerExports:
@@ -191,20 +225,21 @@ def main():
     runner_exports = runnerExports()
     while True:
         # Get actions runners status
-        headers = {"Authorization": f"token {PRIVATE_GITHUB_TOKEN}"}
+        installation_token = generate_installation_token()
+        headers = {"Authorization": f"token {installation_token}"}
         url = f"https://api.github.com/orgs/{OWNER}/actions/runners"
         result = requests.get(url, headers=headers)
 
-        logging.info("Requesting URL: "+ url)
+        logging.info("Requesting URL: " + url)
 
         if result.headers:
             value = result.headers.get("X-RateLimit-Remaining")
             metric_runner_api_ratelimit.labels(OWNER).set(int(value))
-            logging.info("X-RateLimit-Remaining: "+ value)
+            logging.info("X-RateLimit-Remaining: " + value)
         if result.ok:
             runner_list = result.json()
             runner_exports.export_metrics(runner_list["runners"])
-            logging.info("Runners found: "+ str(len(runner_list)))
+            logging.info("Runners found: " + str(len(runner_list)))
 
         sleep(REFRESH_INTERVAL)
 
